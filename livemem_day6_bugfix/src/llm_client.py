@@ -73,6 +73,11 @@ def chat(
             choice = response.choices[0].message.content
             usage = response.usage
             if choice is None:
+                # Some reasoning-style models (e.g. gpt-oss) can return empty
+                # content if max_tokens was too low to finish their internal
+                # reasoning before emitting the visible answer. Treat this
+                # as a retryable condition rather than crashing downstream
+                # code that expects a string.
                 last_error = RuntimeError(
                     "Model returned empty content (likely max_tokens too low "
                     "for this reasoning model to finish). Retrying with same "
@@ -108,7 +113,7 @@ def test_connection():
     """Run this once after setting your API key to confirm everything works."""
     result = chat(
         messages=[{"role": "user", "content": "Reply with exactly the word: OK"}],
-        max_tokens=10,
+        max_tokens=50,
     )
     print("Cerebras connection OK.")
     print("Response:", result["text"])

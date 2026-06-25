@@ -1,0 +1,120 @@
+# Findings Log — Living Memory v0 vs. Vanilla RAG
+
+Running log of results and analysis, written as we go rather than all at
+the end. This file is meant to be lifted almost directly into the paper's
+results/error-analysis sections later.
+
+---
+
+## Day 1 — Vanilla RAG baseline (144/144 questions, full run)
+
+### Headline metrics (from evaluate_predictions.py, with one correction — see below)
+
+| Metric | Reported by script | Corrected | Notes |
+|---|---|---|---|
+| Answer F1 | 0.3957 | (same) | — |
+| Evidence score | 0.9317 | (same) | — |
+| Abstention OK | 0.9792 | **0.8235** | See bug note below |
+| Stale-trap Answer F1 | 0.3220 | (same) | **This is the key number to beat** |
+
+### Bug found in evaluate_predictions.py's abstention metric
+
+The script's `abstention_ok` formula gives an automatic pass to every
+question where `requires_abstention == False` (127 of 144 questions),
+regardless of what the system answered. This inflates the printed
+abstention score. The TRUE abstention accuracy — computed only over the
+17 questions that actually require abstention — is **14/17 = 0.8235**,
+not 0.9792.
+
+**Action for the team:** flag this to whoever owns the shared evaluator,
+so everyone's papers report the corrected number, not the inflated one.
+
+### Error examples — Vanilla RAG abstention failures (3 of 17)
+
+All three failures share the same pattern: the model reasons to a
+confident, contextually-grounded "No," but doesn't use the required
+"insufficient evidence" framing. This is a calibration failure, not a
+hallucination — the model retrieved correct context in all 3 cases.
+
+1. **S003_Q008** — "Is there evidence that Stripe was selected instead of Razorpay?"
+   - Answered: "No, there is no evidence that Stripe was selected instead of Razorpay."
+   - Gold: "Insufficient evidence. The events only mention Razorpay."
+
+2. **S006_Q008** — "Is there evidence that company tags are stored as JSON objects?"
+   - Answered: "No, the context only indicates that the company field is stored as an array, not as JSON objects."
+   - Gold: "Insufficient evidence. The events say the company field is an array."
+
+3. **S014_Q008** — "Is there evidence that all bugs skip approval?"
+   - Answered: "No, the context does not indicate that all bugs skip approval; the workflow routes bugs through the normal backlog and requires approvals for critical bugs."
+   - Gold: "Insufficient evidence. The workflow applies after required approvals."
+
+**Why this matters for Living Memory v0:** if our method's `uncertain`
+status produces more appropriately-hedged answers on borderline cases
+like these, that's a direct, demonstrable advantage tied to a real
+mechanism (not a vague claim). Worth specifically re-checking these 3
+question_ids once Living Memory v0 is built.
+
+---
+
+## Day 2-3 — Living Memory v0 (memory extraction + 4-way classification)
+
+### Logic verification (done before any API calls, see contradiction_classifier.py tests)
+
+All 4 contradiction types produce correctly differentiated behavior:
+- CORRECTION: fast trust, no dampening
+- STATE_CHANGE: dampened by 0.85x before threshold check — confirmed a
+  borderline case (raw 0.8 -> dampened 0.68) correctly falls below the
+  0.7 threshold and produces "uncertain" instead of "superseded"
+- REFINEMENT: no supersession, both memories stay active, linked
+- HYPOTHESIS: fully inert, never changes anything else's status
+
+### [Day 2-3 results — S001 first real run, confirmed working]
+
+**Token cost for S001 (3 classification calls):** 1302 input, 882 output tokens.
+Extrapolating to all 18 scenarios (~6 events each, ~3 classifiable events
+per scenario on average): roughly 54 classification calls total, ~23K
+input / ~16K output tokens for the full classification pass. Well within
+Cerebras free-tier daily budget.
+
+**Confirmed working as designed — the core mechanism, on real data:**
+
+- MEM_E004 (Flask -> FastAPI) classified as **STATE_CHANGE** relative to
+  MEM_E001, raw confidence 0.97 -> dampened to **0.8245** (0.97 x 0.85
+  dampener) -> clears the 0.7 threshold -> MEM_E001 correctly flips to
+  `superseded`. This is the canonical example from the start of this
+  project, now working end-to-end with real LLM classification.
+
+- MEM_E006 (Django rejection) classified as **REFINEMENT** of MEM_E004,
+  confidence 0.9 -> MEM_E004 correctly stayed `active` (no supersession),
+  link recorded.
+
+- MEM_E002 (Supabase for auth) correctly classified as **"none"** —
+  doesn't contradict anything.
+
+- MEM_E003 (requirement) and MEM_E005 (confirmation) correctly skipped
+  by the event_type filter — neither event type is in
+  EVENT_TYPES_THAT_MAY_SUPERSEDE, and neither plausibly contradicts an
+  existing fact. Verified against raw event_type tags in events.jsonl.
+
+**Quirk to watch across more scenarios:** E006 (Django rejected) being
+classified as "REFINEMENT of the FastAPI decision" is debatable — it
+reads more like an independent negative fact than something that adds
+detail to the FastAPI decision specifically. Worth checking if the
+model over-uses REFINEMENT for "related but not really refining" cases
+once more scenarios are run. Not a bug, but a pattern to note in the
+paper's limitations section if it recurs.
+
+**Still to run:** remaining 17 scenarios, then move to Day 4 (retrieval).
+
+
+---
+
+## Day 4-7 — [to be filled in as completed]
+
+### Retrieval + generation results
+
+### Living Memory v0 vs Vanilla RAG — head-to-head metrics table
+
+### 5-10 error examples (tagged: stale answer / wrong evidence / hallucination / failed-to-abstain)
+
+### Honest limitations
