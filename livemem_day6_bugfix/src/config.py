@@ -24,8 +24,8 @@ LLM_MODEL = "gpt-oss-120b"
 # ---- Rate limiting ----
 # Cerebras free tier: ~30 requests/minute, 60K-100K tokens/minute,
 # 1M tokens/day. We stay well under 30 RPM to leave headroom for retries.
-MAX_REQUESTS_PER_MINUTE = 25
-SECONDS_BETWEEN_REQUESTS = 60.0 / MAX_REQUESTS_PER_MINUTE  # ~2.4 sec
+MAX_REQUESTS_PER_MINUTE = 8
+SECONDS_BETWEEN_REQUESTS = 60.0 / MAX_REQUESTS_PER_MINUTE  # ~5 sec
 MAX_RETRIES = 4
 RETRY_BASE_DELAY = 2.0  # seconds, doubles each retry (exponential backoff)
 

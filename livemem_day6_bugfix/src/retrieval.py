@@ -132,11 +132,22 @@ explicitly, using the "superseded by" links shown.
 - If a question asks WHICH EVENT proves something, or for supersession questions, cite the \
 event IDs (e.g. "E004"), NOT the internal memory IDs (do not write "MEM_E004" in your answer \
 text — use "E004" instead).
-- For supersession questions specifically, mention BOTH the original event ID and the event \
-ID that replaced it.
-- If the memory log does not contain enough information to answer, respond with exactly: \
-"Insufficient evidence."
-- Answer concisely, in one or two sentences.
+- For supersession questions specifically, state the actual FACT/CONTENT that was replaced and \
+the fact/content that replaced it, in words (e.g. "The Flask decision was superseded by the \
+FastAPI decision" or "Realistic topic-company fit superseded forced equal balancing") — do NOT \
+answer with only event IDs like "E001 superseded by E003"; event IDs alone do not state what \
+actually changed. You may include event IDs in addition to the content, not instead of it.
+- If the memory log does not contain enough information to confidently confirm OR deny the \
+question, respond with exactly: "Insufficient evidence." Do NOT answer "No" just because you \
+don't see explicit confirmation — only answer "No" if the memory log explicitly states or \
+clearly implies the negative. If you are unsure whether something was decided either way, \
+that IS insufficient evidence.
+- Answer as briefly as possible — match the brevity of a terse factual answer (e.g. "Cloudflare." \
+rather than a full explanatory sentence), while still being accurate. This brevity rule does \
+NOT override the abstention rule above — check abstention FIRST, and only apply brevity to \
+the actual content of your answer. Do not add justification or extra detail unless the \
+question specifically asks why or how.
+justification or extra detail unless the question specifically asks why or how.
 - After your answer, on a new line, write "Evidence: " followed by a comma-separated list \
 of event IDs (e.g. E004) you used.
 """

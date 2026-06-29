@@ -94,8 +94,14 @@ def chat(
             }
         except RateLimitError as e:
             last_error = e
-            delay = config.RETRY_BASE_DELAY * (2 ** attempt)
-            print(f"[rate limit] retry {attempt + 1}/{config.MAX_RETRIES} in {delay:.1f}s...")
+            error_str = str(e)
+            if "per hour" in error_str.lower() or "request_quota_exceeded" in error_str:
+                delay = 300  # 5 minutes
+                print(f"[hourly quota] retry {attempt + 1}/{config.MAX_RETRIES} in {delay}s "
+                      f"(hourly limit hit, short backoff won't help)...")
+            else:
+                delay = config.RETRY_BASE_DELAY * (2 ** attempt)
+                print(f"[rate limit] retry {attempt + 1}/{config.MAX_RETRIES} in {delay:.1f}s...")
             time.sleep(delay)
         except APIError as e:
             last_error = e
